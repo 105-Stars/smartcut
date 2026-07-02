@@ -4,6 +4,7 @@ import {
   type RemoveBackgroundProgress,
 } from './lib/removeBackground'
 
+
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
@@ -53,6 +54,14 @@ function App() {
       if (prevCutoutUrlRef.current) URL.revokeObjectURL(prevCutoutUrlRef.current)
       if (prevBgImageUrlRef.current) URL.revokeObjectURL(prevBgImageUrlRef.current)
     }
+  }, [])
+
+  useEffect(() => {
+    import('./lib/removeBackground')
+      .then((m) => {
+        m.getSession?.().catch(() => {})
+      })
+      .catch(() => {})
   }, [])
 
   const bgStyle = useMemo<CSSProperties>(() => {

@@ -44,7 +44,7 @@ async function getOrt() {
   return ortPromise
 }
 
-async function getSession(onProgress?: (p: RemoveBackgroundProgress) => void) {
+export async function getSession(onProgress?: (p: RemoveBackgroundProgress) => void) {
   if (sessionPromise) return sessionPromise
 
   sessionPromise = (async () => {
@@ -64,6 +64,7 @@ async function getSession(onProgress?: (p: RemoveBackgroundProgress) => void) {
 
   return sessionPromise
 }
+
 
 function createCanvas(width: number, height: number) {
   const canvas = document.createElement('canvas')
