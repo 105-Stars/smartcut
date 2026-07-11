@@ -3,7 +3,6 @@ Allow: /
 
 User-agent: Googlebot
 Allow: /
-
 Allow: /blog/
 Allow: /assets/
 
@@ -13,6 +12,8 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
+User-agent: *
 Disallow: /models/
 
 Sitemap: https://starcloud.dpdns.org/sitemap.xml
+
