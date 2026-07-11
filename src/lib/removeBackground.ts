@@ -14,27 +14,41 @@ export type RemoveBackgroundResult = {
   cutoutCanvas: HTMLCanvasElement
 }
 
+declare global {
+  interface Window {
+    ort?: typeof import('onnxruntime-web')
+  }
+}
+
 let ortPromise: Promise<typeof import('onnxruntime-web')> | null = null
 let sessionPromise: Promise<import('onnxruntime-web').InferenceSession> | null = null
 
 async function getOrt() {
   if (!ortPromise) {
     ortPromise = (async () => {
-      // 使用 ort.wasm.min.js 版本，通过 script 标签引入避免 Vite import 错误
-      // 动态创建 script 标签引入 ort.wasm.min.js
+      // 动态加载 ONNX Runtime Web 引擎
       await new Promise<void>((resolve, reject) => {
-        if (typeof window !== 'undefined' && (window as any).ort) {
+        if (typeof window !== 'undefined' && window.ort) {
           resolve()
           return
         }
         const script = document.createElement('script')
-        script.src = `${import.meta.env.BASE_URL}ort/ort.wasm.min.js`
-        script.onload = () => resolve()
-        script.onerror = () => reject(new Error('加载 ORT 失败'))
+        // 必须加载 ort.all 构建：它同时包含 wasm / webgl / webgpu 全部后端，
+        // 这样 WebGL 尝试失败（u2net 含 ceil_mode MaxPool，WebGL 不支持）时，
+        // 仍能回退到本地 WASM 后端。仅加载 ort.webgl.min.js 不含 wasm 后端，会导致回退失败。
+        script.src = `${import.meta.env.BASE_URL}ort/ort.all.min.js`
+        script.onload = () => {
+          document.body.removeChild(script)
+          resolve()
+        }
+        script.onerror = () => {
+          document.body.removeChild(script)
+          reject(new Error('加载 ORT 失败'))
+        }
         document.body.appendChild(script)
       })
-      
-      const ort = (window as any).ort as typeof import('onnxruntime-web')
+
+      const ort = window.ort!
       ort.env.wasm.wasmPaths = `${import.meta.env.BASE_URL}ort/`
       ort.env.wasm.simd = true
       ort.env.wasm.numThreads = 1 // 避免多线程和 jsep.mjs 问题
@@ -56,10 +70,22 @@ export async function getSession(onProgress?: (p: RemoveBackgroundProgress) => v
     const model = await modelRes.arrayBuffer()
 
     onProgress?.({ percent: 25, message: '正在初始化推理引擎…' })
-    return ort.InferenceSession.create(model, {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
-    })
+    // 优先尝试 WebGL（GPU）加速。但 u2net 含 ceil_mode 的 MaxPool，
+    // ORT Web 的 WebGL 后端暂不支持其 shape 计算（会抛
+    // "using ceil() in shape computation is not yet supported for MaxPool"），
+    // 导致整个会话创建失败。因此捕获后回退到本地 WASM（CPU），保证抠图可用。
+    try {
+      return await ort.InferenceSession.create(model, {
+        executionProviders: ['webgl', 'wasm'],
+        graphOptimizationLevel: 'all',
+      })
+    } catch (err) {
+      console.warn('[SmartCut] WebGL 后端初始化失败，回退本地 WASM：', err)
+      return await ort.InferenceSession.create(model, {
+        executionProviders: ['wasm'],
+        graphOptimizationLevel: 'all',
+      })
+    }
   })()
 
   return sessionPromise
@@ -130,6 +156,7 @@ export async function removeBackgroundFromImageBitmap(
   const out = results[firstOutputName]
   const outData = out.data as Float32Array
 
+  // 单次遍历：同时计算 min/max 和归一化后的 mask 数据
   let min = Number.POSITIVE_INFINITY
   let max = Number.NEGATIVE_INFINITY
   for (let i = 0; i < outData.length; i++) {
@@ -138,20 +165,22 @@ export async function removeBackgroundFromImageBitmap(
     if (v > max) max = v
   }
   const range = max - min + 1e-6
+  const scale = 1 / range
 
   onProgress?.({ percent: 75, message: '正在生成透明背景…' })
   const maskCanvas = createCanvas(inputSize, inputSize)
   const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true })
   if (!maskCtx) throw new Error('Canvas 初始化失败')
   const maskImageData = maskCtx.createImageData(inputSize, inputSize)
+  const maskData = maskImageData.data
   for (let i = 0; i < outData.length; i++) {
-    const a = clamp01((outData[i] - min) / range)
+    const a = clamp01((outData[i] - min) * scale)
     const v = Math.round(a * 255)
-    const j = i * 4
-    maskImageData.data[j] = v
-    maskImageData.data[j + 1] = v
-    maskImageData.data[j + 2] = v
-    maskImageData.data[j + 3] = 255
+    const j = i << 2
+    maskData[j] = v
+    maskData[j + 1] = v
+    maskData[j + 2] = v
+    maskData[j + 3] = 255
   }
   maskCtx.putImageData(maskImageData, 0, 0)
 
@@ -179,12 +208,14 @@ export async function removeBackgroundFromImageBitmap(
   cutoutCtx.drawImage(bitmap, 0, 0)
   const cutoutImageData = cutoutCtx.getImageData(0, 0, w, h)
   const rgba = cutoutImageData.data
+  const useGamma = maskGamma !== 1
+  const useThreshold = maskThreshold > 0
 
   for (let i = 0; i < w * h; i++) {
-    const m = maskPixels[i * 4] / 255
-    let a = maskGamma !== 1 ? Math.pow(m, maskGamma) : m
-    if (maskThreshold > 0) a = a < maskThreshold ? 0 : a
-    rgba[i * 4 + 3] = Math.round(clamp01(a) * 255)
+    const m = maskPixels[i << 2] / 255
+    let a = useGamma ? Math.pow(m, maskGamma) : m
+    if (useThreshold && a < maskThreshold) a = 0
+    rgba[(i << 2) + 3] = Math.round(clamp01(a) * 255)
   }
 
   cutoutCtx.putImageData(cutoutImageData, 0, 0)

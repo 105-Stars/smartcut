@@ -1,0 +1,18 @@
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+Allow: /blog/
+Allow: /assets/
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+Disallow: /models/
+
+Sitemap: https://starcloud.dpdns.org/sitemap.xml
