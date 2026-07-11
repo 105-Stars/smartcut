@@ -33,10 +33,10 @@ async function getOrt() {
           return
         }
         const script = document.createElement('script')
-        // 必须加载 ort.all 构建：它同时包含 wasm / webgl / webgpu 全部后端，
-        // 这样 WebGL 尝试失败（u2net 含 ceil_mode MaxPool，WebGL 不支持）时，
-        // 仍能回退到本地 WASM 后端。仅加载 ort.webgl.min.js 不含 wasm 后端，会导致回退失败。
-        script.src = `${import.meta.env.BASE_URL}ort/ort.all.min.js`
+        // 加载 ort.webgpu 构建：它包含 webgpu 与本地 wasm 两个后端。
+        // 优先使用 WebGPU（GPU）加速；若浏览器不支持或初始化失败，
+        // 自动回退到本地 WASM（CPU）后端，保证抠图始终可用。
+        script.src = `${import.meta.env.BASE_URL}ort/ort.webgpu.min.js`
         script.onload = () => {
           document.body.removeChild(script)
           resolve()
@@ -51,7 +51,7 @@ async function getOrt() {
       const ort = window.ort!
       ort.env.wasm.wasmPaths = `${import.meta.env.BASE_URL}ort/`
       ort.env.wasm.simd = true
-      ort.env.wasm.numThreads = 1 // 避免多线程和 jsep.mjs 问题
+      ort.env.wasm.numThreads = 1 // 避免多线程与 jsep（WebGPU）相关问题
       return ort
     })()
   }
@@ -70,17 +70,15 @@ export async function getSession(onProgress?: (p: RemoveBackgroundProgress) => v
     const model = await modelRes.arrayBuffer()
 
     onProgress?.({ percent: 25, message: '正在初始化推理引擎…' })
-    // 优先尝试 WebGL（GPU）加速。但 u2net 含 ceil_mode 的 MaxPool，
-    // ORT Web 的 WebGL 后端暂不支持其 shape 计算（会抛
-    // "using ceil() in shape computation is not yet supported for MaxPool"），
-    // 导致整个会话创建失败。因此捕获后回退到本地 WASM（CPU），保证抠图可用。
+    // 优先尝试 WebGPU（GPU）加速；若浏览器不支持或初始化失败，
+    // 回退到本地 WASM（CPU）后端，保证抠图始终可用。
     try {
       return await ort.InferenceSession.create(model, {
-        executionProviders: ['webgl', 'wasm'],
+        executionProviders: ['webgpu', 'wasm'],
         graphOptimizationLevel: 'all',
       })
     } catch (err) {
-      console.warn('[SmartCut] WebGL 后端初始化失败，回退本地 WASM：', err)
+      console.warn('[SmartCut] WebGPU 后端初始化失败，回退本地 WASM：', err)
       return await ort.InferenceSession.create(model, {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'all',

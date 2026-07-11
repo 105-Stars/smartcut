@@ -17,6 +17,34 @@ const ACCENTS: Record<string, string> = {
 type Filter = BlogCategory | 'all'
 
 /* ============================================================
+   renderBody — 将正文中的 [text](url) 转换为带 target="_blank" 的 <a> 标签，
+   同时保留现有 whitespace-pre-line 换行行为。
+   正则匹配：开头的 `[`, 非 `]` 的文本, `]`, `(`, 非 `)` 的 URL, `)`。
+   ============================================================ */
+function renderBody(text: string) {
+  const parts: (string | React.ReactNode)[] = []
+  let lastIndex = 0
+  const re = /\[([^\]]+)\]\(([^)]+)\)/g
+  let match: RegExpExecArray | null
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index))
+    }
+    parts.push(
+      <a key={match.index} href={match[2]} target="_blank" rel="noopener noreferrer"
+        className="font-medium text-brand-600 underline decoration-brand-300/50 underline-offset-2 transition-colors hover:text-brand-800 hover:decoration-brand-500">
+        {match[1]}
+      </a>,
+    )
+    lastIndex = match.index + match[0].length
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex))
+  }
+  return parts.length > 0 ? parts : text
+}
+
+/* ============================================================
  * Blog Hero — 论点先行 + 流动渐变光晕
  * ============================================================ */
 function BlogHero({ t }: { t: (k: string, p?: Record<string, string>) => string }) {
@@ -343,7 +371,7 @@ function ArticleDetail({
               </h2>
 
               {sec.body && (
-                <p className="mt-3 whitespace-pre-line text-[15px] leading-8 text-slate-700">{sec.body}</p>
+                <p className="mt-3 whitespace-pre-line text-[15px] leading-8 text-slate-700">{renderBody(sec.body)}</p>
               )}
 
               {sec.quote && (

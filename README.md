@@ -1,6 +1,6 @@
 # SmartCut 智能抠图
 
-一个可直接部署到 GitHub Pages 的智能抠图网站：上传图片 → 一键抠图（浏览器端本地推理）→ 预览对比 → 下载透明背景 PNG，并支持基础背景替换预览（背景色/背景图）。
+一个可直接部署到 GitHub Pages 的智能抠图网站：上传图片 → 一键抠图（浏览器端本地推理，优先使用 WebGPU 加速，不支持时自动回退本地 WASM）→ 预览对比 → 下载透明背景 PNG，并支持基础背景替换预览（背景色/背景图）。
 
 ## 功能
 
@@ -123,8 +123,8 @@ SmartCut/
 ├── public/                # 静态资源
 │   ├── models/            # ONNX 抠图模型
 │   │   └── u2netp.onnx    # U2NetP 轻量模型 (~4.4MB)
-│   └── ort/               # ONNX Runtime Web 运行时
-│       └── *.js           # WASM 推理引擎
+│   ├── ort/               # ONNX Runtime Web 运行时
+│       └── *.js           # WebGPU + 本地 WASM 推理引擎（优先 WebGPU，WASM 兜底）
 ├── src/
 │   ├── lib/               # 核心逻辑
 │   │   └── removeBackground.ts  # 抠图推理实现
@@ -152,9 +152,10 @@ SmartCut/
 - 确认 `vite.config.ts` 中 `base: './'` 已设置（使用相对路径）
 - 确认 `.github/workflows/deploy.yml` 中构建路径为 `dist/`
 
-### 抠图功能报错（WebAssembly 加载失败）
+### 抠图功能报错（WebGPU / WebAssembly 加载失败）
 
-- 检查 `public/ort/` 目录下是否有 `ort.wasm.min.js` 及相关 wasm 文件
+- 抠图优先使用 WebGPU 加速；若浏览器不支持或初始化失败，会自动回退到本地 WASM（CPU）后端
+- 检查 `public/ort/` 目录下是否有 `ort.webgpu.min.js`、`ort.wasm.min.js` 及相关 wasm 文件
 - 检查 `public/models/` 目录下是否有 `u2netp.onnx` 文件
 
 ### 编辑后图片无法下载

@@ -59,7 +59,7 @@ export const blogArticles: BlogArticle[] = [
             heading: '本地 AI 也能这么聪明',
             body: 'SmartCut 内置 U2NetP 轻量模型，通过 ONNX Runtime Web 在浏览器中运行。它在保证精度的同时，把体积压到极致，让中低端笔记本也能流畅推理。',
             list: [
-              '浏览器内推理：WebGL 与本地 WASM 双后端自动适配。',
+              '浏览器内推理：优先 WebGPU，自动回退本地 WASM 后端。',
               '320px 输入尺寸：速度与质量的平衡点在工程上经过反复打磨。',
               '持续迭代：模型与算法会随版本更新悄悄变好。',
             ],
@@ -110,7 +110,7 @@ export const blogArticles: BlogArticle[] = [
             heading: 'Local AI can be this smart',
             body: 'SmartCut ships the lightweight U2NetP model, running in the browser via ONNX Runtime Web. It keeps size to a minimum while preserving accuracy, so even mid-range laptops run inference smoothly.',
             list: [
-              'In-browser inference: WebGL and local WASM backends auto-adapt.',
+              'In-browser inference: WebGPU preferred, with automatic local WASM fallback.',
               '320px input: a speed/quality balance refined through real engineering.',
               'Continuous iteration: model and algorithm quietly improve with updates.',
             ],
@@ -161,7 +161,7 @@ export const blogArticles: BlogArticle[] = [
             heading: 'ローカル AI でも、ここまで賢く',
             body: 'SmartCut は軽量モデル U2NetP を内蔵し、ONNX Runtime Web 経由でブラウザ内で動きます。精度を保ちつつサイズを極限まで削り、ミドルレンジのノート PC でも滑らかに推論します。',
             list: [
-              'ブラウザ内推論：WebGL とローカル WASM の両バックエンドへ自動対応。',
+              'ブラウザ内推論：WebGPU を優先し、ローカル WASM へ自動フォールバック。',
               '320px 入力：速度と品質のバランスを丁寧に仕上げました。',
               '継続改善：モデルとアルゴリズムはアップデートで静かに良くなります。',
             ],
@@ -212,7 +212,7 @@ export const blogArticles: BlogArticle[] = [
             heading: '로컬 AI도 이렇게 똑똑할 수 있다',
             body: 'SmartCut은 가벼운 U2NetP 모델을 내장하고 ONNX Runtime Web으로 브라우저에서 돌아갑니다. 정확도를 지키면서 크기를 극한으로 줄여 중급 노트북에서도 부드럽게 추론합니다.',
             list: [
-              '브라우저 내 추론: WebGL과 로컬 WASM 백엔드에 자동 대응.',
+              '브라우저 내 추론: WebGPU 우선, 로컬 WASM 자동 폴백.',
               '320px 입력: 속도와 품질의 균형을 정성껏 다듬음.',
               '지속 개선: 모델과 알고리즘은 업데이트로 조용히 좋아집니다.',
             ],
@@ -263,7 +263,7 @@ export const blogArticles: BlogArticle[] = [
             heading: '本地 AI 也能這麼聰明',
             body: 'SmartCut 內建 U2NetP 輕量模型，透過 ONNX Runtime Web 在瀏覽器中運行。它在保證精度的同時，把體積壓到極致，讓中低階筆電也能流暢推理。',
             list: [
-              '瀏覽器內推理：WebGL 與本地 WASM 雙後端自動適配。',
+              '瀏覽器內推理：優先 WebGPU，自動回退本地 WASM 後端。',
               '320px 輸入尺寸：速度與品質的平衡點在工程中經過反覆打磨。',
               '持續迭代：模型與演算法會隨版本更新悄悄變好。',
             ],
@@ -294,7 +294,7 @@ export const blogArticles: BlogArticle[] = [
         sections: [
           {
             heading: 'U2NetP 到底是什么',
-            body: 'U2NetP 是 U2Net 系列的轻量化变体，专门为显著性目标检测（Salient Object Detection）设计。它的任务很明确：判断图中每个像素是否属于「主体」，从而输出一张遮罩。\n\n相比原版 U2Net，U2NetP 通过缩减通道数与层数，把参数量压到极小，却依然保留了两级嵌套的「U 形」结构，因此得名。',
+            body: 'U2NetP 是 [U2Net](https://github.com/xuebinqin/U-2-Net) 系列的轻量化变体，专门为显著性目标检测（Salient Object Detection）设计。它的任务很明确：判断图中每个像素是否属于「主体」，从而输出一张遮罩。\n\n相比原版 U2Net，U2NetP 通过缩减通道数与层数，把参数量压到极小，却依然保留了两级嵌套的「U 形」结构，因此得名。',
             quote: '它不是更大的模型，而是更聪明的模型。',
           },
           {
@@ -310,11 +310,11 @@ export const blogArticles: BlogArticle[] = [
           },
           {
             heading: '浏览器里的端侧推理',
-            body: 'SmartCut 通过 ONNX Runtime Web 加载 U2NetP 的 ONNX 格式权重。它会根据设备能力，在 WebGL 与本地 WASM 两个后端之间自动选择。',
+            body: 'SmartCut 通过 [ONNX Runtime Web](https://github.com/microsoft/onnxruntime-web) 加载 U2NetP 的 ONNX 格式权重，优先使用 WebGPU 调用显卡加速；当浏览器不支持或初始化失败时，自动回退到本地 WASM（CPU）后端。',
             list: [
               'ONNX Runtime Web：跨平台推理引擎，免安装、纯前端。',
-              'WASM 后端：兼容一切浏览器，CPU 上也能跑，稳。',
-              'WebGL 后端：在支持的浏览器上调用显卡，速度大幅提升。',
+              'WASM 后端：兼容一切浏览器，CPU 上也能稳定运行，作为 WebGPU 不可用时的回退保障。',
+              'WebGPU 后端：在支持的浏览器上调用显卡，速度较 WASM 大幅提升。',
               '320px 输入：原图缩放到 320 边长再推理，兼顾速度与边缘精度。',
             ],
             quote: '模型没动，动的是它跑在哪块芯片上。',
@@ -353,7 +353,7 @@ export const blogArticles: BlogArticle[] = [
         sections: [
           {
             heading: 'What exactly is U2NetP',
-            body: 'U2NetP is a lightweight variant of the U2Net family, built specifically for Salient Object Detection. Its job is clear: decide whether each pixel belongs to the "subject" and output a mask.\n\nCompared with the original U2Net, U2NetP shrinks channel count and depth to minimize parameters, while keeping the two-level nested "U-shaped" structure — hence the name.',
+            body: 'U2NetP is a lightweight variant of the [U2Net](https://github.com/xuebinqin/U-2-Net) family, built specifically for Salient Object Detection. Its job is clear: decide whether each pixel belongs to the "subject" and output a mask.\n\nCompared with the original U2Net, U2NetP shrinks channel count and depth to minimize parameters, while keeping the two-level nested "U-shaped" structure — hence the name.',
             quote: 'It is not a bigger model, but a smarter one.',
           },
           {
@@ -369,11 +369,11 @@ export const blogArticles: BlogArticle[] = [
           },
           {
             heading: 'On-device inference in the browser',
-            body: 'SmartCut loads U2NetP weights in ONNX format via ONNX Runtime Web. It auto-selects between the WebGL and local WASM backends based on device capability.',
+            body: 'SmartCut loads U2NetP weights in ONNX format via [ONNX Runtime Web](https://github.com/microsoft/onnxruntime-web). It prefers WebGPU to tap the GPU, and automatically falls back to the local WASM backend when the browser does not support it or fails to initialize.',
             list: [
               'ONNX Runtime Web: a cross-platform inference engine, install-free and pure frontend.',
-              'WASM backend: works in every browser, runs on CPU, rock solid.',
-              'WebGL backend: taps the GPU on supported browsers, greatly boosting speed.',
+              '[WebAssembly (WASM)](https://developer.mozilla.org/en-US/docs/WebAssembly) backend: works in every browser, runs on CPU, the reliable fallback.',
+              'WebGPU backend: taps the GPU on supported browsers, greatly boosting speed over WASM.',
               '320px input: the image is scaled to 320px per side before inference, balancing speed and edge precision.',
             ],
             quote: 'The model did not move; what moved is which chip it runs on.',
@@ -428,11 +428,11 @@ export const blogArticles: BlogArticle[] = [
           },
           {
             heading: 'ブラウザでの端末内推論',
-            body: 'SmartCut は ONNX Runtime Web 経由で U2NetP の ONNX 重みを読み込みます。デバイス能力に応じ、WebGL とローカル WASM の両バックエンドから自動選択します。',
+            body: 'SmartCut は ONNX Runtime Web 経由で U2NetP の ONNX 重みを読み込みます。WebGPU を優先して GPU を呼び出し、対応ブラウザでない場合や初期化に失敗した場合はローカル WASM（CPU）バックエンドへ自動フォールバックします。',
             list: [
               'ONNX Runtime Web：クロスプラットフォーム推論エンジン、導入不要で純前端。',
-              'WASM バックエンド：すべてのブラウザで動作、CPU でも安定。',
-              'WebGL バックエンド：対応ブラウザで GPU を呼び、高速化。',
+              'WASM バックエンド：すべてのブラウザで動作し、CPU でも安定。WebGPU 非対応時のフォールバック。',
+              'WebGPU バックエンド：対応ブラウザで GPU を呼び出し、高速化。',
               '320px 入力：推論前に 320px 辺へ縮小し、速度と縁精度を両立。',
             ],
             quote: 'モデルは動いていない、動いたのはどのチップかだけだ。',
@@ -487,11 +487,11 @@ export const blogArticles: BlogArticle[] = [
           },
           {
             heading: '브라우저에서의 기기 내 추론',
-            body: 'SmartCut은 ONNX Runtime Web으로 U2NetP의 ONNX 가중치를 불러옵니다. 장치 능력에 따라 WebGL과 로컬 WASM 백엔드 중 자동 선택합니다.',
+            body: 'SmartCut은 ONNX Runtime Web으로 U2NetP의 ONNX 가중치를 불러옵니다. WebGPU를 우선해 GPU를 사용하고, 브라우저가 지원하지 않거나 초기화에 실패하면 로컬 WASM(CPU) 백엔드로 자동 폴백합니다.',
             list: [
               'ONNX Runtime Web: 크로스 플랫폼 추론 엔진, 설치 없이 순수 프론트엔드.',
-              'WASM 백엔드: 모든 브라우저에서 동작, CPU에서도 안정적.',
-              'WebGL 백엔드: 지원 브라우저에서 GPU 호출, 속도 대폭 향상.',
+              'WASM 백엔드: 모든 브라우저에서 동작, CPU에서도 안정적. WebGPU 미지원 시 폴백.',
+              'WebGPU 백엔드: 지원 브라우저에서 GPU 호출, 속도 대폭 향상.',
               '320px 입력: 추론 전 320px 변으로 축소해 속도와 가장자리 정밀도 균형.',
             ],
             quote: '모델은 안 움직였고, 움직인 건 어떤 칩에서 도느냐뿐입니다.',
@@ -546,11 +546,11 @@ export const blogArticles: BlogArticle[] = [
           },
           {
             heading: '瀏覽器裡的端側推理',
-            body: 'SmartCut 透過 ONNX Runtime Web 載入 U2NetP 的 ONNX 格式權重。它會根據裝置能力，在 WebGL 與本地 WASM 兩個後端之間自動選擇。',
+            body: 'SmartCut 透過 ONNX Runtime Web 載入 U2NetP 的 ONNX 格式權重，優先使用 WebGPU 呼叫顯卡加速；當瀏覽器不支援或初始化失敗時，自動回退到本地 WASM（CPU）後端。',
             list: [
               'ONNX Runtime Web：跨平台推理引擎，免安裝、純前端。',
-              'WASM 後端：相容一切瀏覽器，CPU 上也能跑，穩。',
-              'WebGL 後端：在支援的瀏覽器上呼叫顯卡，速度大幅提升。',
+              'WASM 後端：相容一切瀏覽器，CPU 上也能穩定運行，作為 WebGPU 不可用時的回退保障。',
+              'WebGPU 後端：在支援的瀏覽器上呼叫顯卡，速度較 WASM 大幅提升。',
               '320px 輸入：原圖縮放到 320 邊長再推理，兼顧速度與邊緣精度。',
             ],
             quote: '模型沒動，動的是它跑在哪塊晶片上。',
@@ -1387,7 +1387,7 @@ export const blogArticles: BlogArticle[] = [
         sections: [
           {
             heading: 'PNG：无损与透明之王',
-            body: 'PNG 采用无损压缩，且原生支持 Alpha 透明通道。只要你需要抠图后的透明边缘，它几乎是无可替代的选择。',
+            body: 'PNG 采用无损压缩，且原生支持 Alpha 透明通道。只要你需要抠图后的透明边缘，它几乎是无可替代的选择。了解具体技术细节可参考 [MDN 图片格式指南](https://developer.mozilla.org/zh-CN/docs/Web/Media/Formats/Image_types)。',
             list: [
               '优点：无损、支持透明、所有软件都认。',
               '缺点：体积偏大，照片类内容不划算。',
@@ -1441,7 +1441,7 @@ export const blogArticles: BlogArticle[] = [
         sections: [
           {
             heading: 'PNG: king of lossless and transparency',
-            body: 'PNG uses lossless compression and natively supports an Alpha transparency channel. Whenever you need a transparent edge after cutout, it is nearly irreplaceable.',
+            body: 'PNG uses lossless compression and natively supports an Alpha transparency channel. Whenever you need a transparent edge after cutout, it is nearly irreplaceable. For technical details see the [MDN image format guide](https://developer.mozilla.org/en-US/docs/Web/Media/Formats/Image_types).',
             list: [
               'Pros: lossless, transparent, recognized by every app.',
               'Cons: larger size, wasteful for photos.',

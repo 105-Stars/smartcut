@@ -471,3 +471,57 @@ html[data-theme] textarea {
 .theme-toggle-btn:active {
   transform: scale(0.9);
 }
+
+/* === Blog article (editorial / personal-blog style) === */
+
+/* Entrance animation for the article hero */
+@keyframes blog-fade-up {
+  0% { opacity: 0; transform: translateY(26px); }
+  100% { opacity: 1; transform: none; }
+}
+.blog-fade-up { animation: blog-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Soft breathing glow for the "key point" takeaway card */
+@keyframes blog-glow {
+  0%, 100% { box-shadow: 0 4px 18px -10px rgba(124, 58, 237, 0.25); }
+  50% { box-shadow: 0 12px 34px -10px rgba(124, 58, 237, 0.42); }
+}
+
+/* Typographic container for article body */
+.prose-blog {
+  font-size: 1.04rem;
+  line-height: 1.92;
+}
+.prose-blog p { margin: 0 0 1.15rem; }
+.prose-blog p:last-child { margin-bottom: 0; }
+.prose-blog a {
+  color: #7c3aed;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(124, 58, 237, 0.4);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+.prose-blog a:hover {
+  color: #06b6d4;
+  text-decoration-color: rgba(6, 182, 212, 0.6);
+}
+
+/* Drop cap on the very first paragraph — personal-blog feel */
+.blog-dropcap::first-letter {
+  float: left;
+  margin: 0.06em 0.14em 0 0;
+  font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  font-size: 3.2em;
+  line-height: 0.82;
+  font-weight: 800;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 45%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blog-fade-up { animation: none; }
+  [style*='blog-glow'] { animation: none !important; }
+}
