@@ -18,7 +18,9 @@ export default defineConfig({
   ],
   server: {
     headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
+      // COOP/COEP 头：本地开发时需要，使 SharedArrayBuffer 可用
+      // 生产环境（GitHub Pages + Cloudflare Worker 代理）由 Worker 添加
+      'Cross-Origin-Embedder-Policy': 'credentialless',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
   },

@@ -287,6 +287,7 @@ export const en = {
 
   // --- Performance/Enhancement ---
   'progress.webgpu_accel': 'WebGPU acceleration + local WASM fallback',
+  'progress.cpu_mode': 'CPU local inference mode (slower)',
   'magic_eraser.button': 'Magic Eraser',
   'magic_eraser.tooltip': 'Manually remove residual background',
   'magic_eraser.hint': 'Brush over areas to erase. Supports undo.',

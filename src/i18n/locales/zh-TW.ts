@@ -287,5 +287,6 @@ export const zhTW = {
   'preset_crops.title': '預設裁切',
   'preset_crops.us_passport': '美國護照／簽證 (2×2 in)',
   'progress.webgpu_accel': 'WebGPU 加速 + 本地 WASM 兜底',
+  'progress.cpu_mode': 'CPU 本地推理模式（速度較慢）',
   'page.about.hero_title_lead': '一個人的',
 }

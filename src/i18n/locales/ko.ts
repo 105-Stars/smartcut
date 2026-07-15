@@ -287,5 +287,6 @@ export const ko = {
   'preset_crops.title': '프리셋 자르기',
   'preset_crops.us_passport': '미국 여권/비자 (2×2 in)',
   'progress.webgpu_accel': 'WebGPU 가속 + 로컬 WASM 폴백',
+  'progress.cpu_mode': 'CPU 로컬 추론 모드(느림)',
   'page.about.hero_title_lead': '한 사람의',
 }

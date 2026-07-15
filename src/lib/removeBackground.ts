@@ -20,23 +20,63 @@ declare global {
   }
 }
 
+// 检测当前页面是否处于跨域隔离状态（即 COOP/COEP 头已设置）
+// SharedArrayBuffer 需要 crossOriginIsolated = true 才能使用
+function isCrossOriginIsolated(): boolean {
+  return typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated === true
+}
+
 let ortPromise: Promise<typeof import('onnxruntime-web')> | null = null
 let sessionPromise: Promise<import('onnxruntime-web').InferenceSession> | null = null
+
+// 模型缓存（IndexedDB），避免重复下载大模型文件
+const MODEL_CACHE_KEY = 'smartcut-u2netp-model-v1'
+
+async function getCachedModel(): Promise<ArrayBuffer | null> {
+  try {
+    const cache = await caches.open('smartcut-model-cache-v1')
+    const cached = await cache.match(MODEL_CACHE_KEY)
+    if (cached) {
+      return await cached.arrayBuffer()
+    }
+  } catch {
+    // Cache API 不可用时静默降级
+  }
+  return null
+}
+
+async function cacheModel(data: ArrayBuffer): Promise<void> {
+  try {
+    const cache = await caches.open('smartcut-model-cache-v1')
+    const blob = new Blob([data], { type: 'application/octet-stream' })
+    const response = new Response(blob)
+    await cache.put(MODEL_CACHE_KEY, response)
+  } catch {
+    // 缓存失败不影响功能
+  }
+}
 
 async function getOrt() {
   if (!ortPromise) {
     ortPromise = (async () => {
-      // 动态加载 ONNX Runtime Web 引擎
+      const isolated = isCrossOriginIsolated()
+
       await new Promise<void>((resolve, reject) => {
         if (typeof window !== 'undefined' && window.ort) {
           resolve()
           return
         }
         const script = document.createElement('script')
-        // 加载 ort.webgpu 构建：它包含 webgpu 与本地 wasm 两个后端。
-        // 优先使用 WebGPU（GPU）加速；若浏览器不支持或初始化失败，
-        // 自动回退到本地 WASM（CPU）后端，保证抠图始终可用。
-        script.src = `${import.meta.env.BASE_URL}ort/ort.webgpu.min.js`
+        // 根据跨域隔离状态选择正确的 ORT 构建：
+        // - 有 COOP/COEP（crossOriginIsolated）：加载 ort.webgpu.min.js
+        //   - 优先 WebGPU（GPU）加速，可回退到多线程 WASM
+        // - 无 COOP/COEP（如 GitHub Pages）：加载 ort.wasm.min.js
+        //   - 使用单线程 WASM（CPU），不使用 SharedArrayBuffer
+        if (isolated) {
+          script.src = `${import.meta.env.BASE_URL}ort/ort.webgpu.min.js`
+        } else {
+          script.src = `${import.meta.env.BASE_URL}ort/ort.wasm.min.js`
+        }
         script.onload = () => {
           document.body.removeChild(script)
           resolve()
@@ -51,7 +91,14 @@ async function getOrt() {
       const ort = window.ort!
       ort.env.wasm.wasmPaths = `${import.meta.env.BASE_URL}ort/`
       ort.env.wasm.simd = true
-      ort.env.wasm.numThreads = 1 // 避免多线程与 jsep（WebGPU）相关问题
+
+      if (isolated) {
+        // 跨域隔离环境：可使用多线程
+        ort.env.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 4, 4)
+      } else {
+        // 非跨域隔离环境（如 GitHub Pages）：禁用多线程
+        ort.env.wasm.numThreads = 1
+      }
       return ort
     })()
   }
@@ -65,21 +112,42 @@ export async function getSession(onProgress?: (p: RemoveBackgroundProgress) => v
     const ort = await getOrt()
 
     onProgress?.({ percent: 10, message: '正在加载模型…' })
-    const modelRes = await fetch(`${import.meta.env.BASE_URL}models/u2netp.onnx`)
-    if (!modelRes.ok) throw new Error(`模型加载失败：${modelRes.status}`)
-    const model = await modelRes.arrayBuffer()
+
+    // 尝试从缓存加载模型
+    let modelArrayBuffer: ArrayBuffer | null = await getCachedModel()
+
+    if (!modelArrayBuffer) {
+      const modelRes = await fetch(`${import.meta.env.BASE_URL}models/u2netp.onnx`)
+      if (!modelRes.ok) throw new Error(`模型加载失败：${modelRes.status}`)
+      modelArrayBuffer = await modelRes.arrayBuffer()
+      // 异步缓存，不阻塞推理
+      cacheModel(modelArrayBuffer)
+    } else {
+      onProgress?.({ percent: 15, message: '从缓存加载模型…' })
+    }
 
     onProgress?.({ percent: 25, message: '正在初始化推理引擎…' })
-    // 优先尝试 WebGPU（GPU）加速；若浏览器不支持或初始化失败，
-    // 回退到本地 WASM（CPU）后端，保证抠图始终可用。
+    const isolated = isCrossOriginIsolated()
+
     try {
-      return await ort.InferenceSession.create(model, {
-        executionProviders: ['webgpu', 'wasm'],
+      // 只在跨域隔离环境下尝试 WebGPU
+      if (isolated) {
+        return await ort.InferenceSession.create(modelArrayBuffer, {
+          executionProviders: ['webgpu', 'wasm'],
+          graphOptimizationLevel: 'all',
+        })
+      }
+      // 非隔离环境直接使用 WASM
+      return await ort.InferenceSession.create(modelArrayBuffer, {
+        executionProviders: ['wasm'],
         graphOptimizationLevel: 'all',
       })
     } catch (err) {
-      console.warn('[SmartCut] WebGPU 后端初始化失败，回退本地 WASM：', err)
-      return await ort.InferenceSession.create(model, {
+      // WebGPU 失败，回退 WASM
+      if (isolated) {
+        console.warn('[SmartCut] WebGPU 后端初始化失败，回退本地 WASM：', err)
+      }
+      return await ort.InferenceSession.create(modelArrayBuffer, {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'all',
       })

@@ -270,6 +270,7 @@ export const zhCN = {
 
   // --- Performance/Enhancement ---
   'progress.webgpu_accel': 'WebGPU 加速 + 本地 WASM 兜底',
+  'progress.cpu_mode': 'CPU 本地推理模式（速度较慢）',
   'magic_eraser.button': '魔法擦除',
   'magic_eraser.tooltip': '手动擦除残留背景',
   'magic_eraser.hint': '在要擦除的区域上涂抹。支持撤销操作。',

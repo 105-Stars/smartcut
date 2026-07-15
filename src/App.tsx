@@ -3,7 +3,7 @@ import {
   removeBackgroundFromImageBitmap,
   type RemoveBackgroundProgress,
 } from './lib/removeBackground'
-import { formatBytes } from './lib/utils'
+import { downloadBlob, formatBytes } from './lib/utils'
 import { getCropRect } from './lib/crop'
 import { useTranslation } from './hooks/useTranslation'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -1605,14 +1605,7 @@ function App() {
     try {
       const blob = await renderEditedImage()
       if (!blob) { setError(t('error.export_failed_retry')); return }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = downloadEditedName
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 3000)
+      await downloadBlob(blob, downloadEditedName)
       showSuccessToast(t('toast.download_success'))
     } catch (e) {
       setError(t('error.export_failed', { 0: e instanceof Error ? e.message : t('error.unknown_error') }))
@@ -1980,15 +1973,18 @@ function App() {
                     </>
                   )}
                 </button>
-                <a
+                <button
+                  type="button" onClick={async () => {
+                    if (!cutoutBlob) return
+                    await downloadBlob(cutoutBlob, downloadName)
+                  }} disabled={!cutoutBlob}
                   className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-bold shadow-sm transition-all duration-300 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
                     cutoutBlob ? 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50 hover:border-slate-300' : 'pointer-events-none border-slate-200 bg-slate-50 text-slate-400'
                   }`}
-                  href={cutoutUrl ?? undefined} download={downloadName} aria-disabled={!cutoutBlob}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   {t('panel.download_png')}
-                </a>
+                </button>
               </div>
 
               <div className="mt-6 rounded-2xl border border-slate-200/60 p-4 backdrop-blur-sm transition-all duration-300 hover:border-slate-200" style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)' }}>
@@ -2258,6 +2254,16 @@ function App() {
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>
               <span className="text-[11px] sm:text-xs">{t('progress.webgpu_accel')}</span>
             </div>
+
+            {/* 环境提示：非跨域隔离环境（如 GitHub Pages）时显示 CPU 模式警告 */}
+            {typeof crossOriginIsolated !== 'undefined' && !crossOriginIsolated ? (
+              <div className="mt-2 flex items-center justify-center gap-1.5 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span>{t('progress.cpu_mode')}</span>
+              </div>
+            ) : null}
             
             <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
               <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-accent-500 transition-all duration-500 ease-out" style={{ width: `${Math.max(5, progress.percent)}%` }} />

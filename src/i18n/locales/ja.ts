@@ -287,5 +287,6 @@ export const ja = {
   'preset_crops.title': 'プリセットクロップ',
   'preset_crops.us_passport': '米国旅券・ビザ (2×2 in)',
   'progress.webgpu_accel': 'WebGPU 加速 + ローカル WASM フォールバック',
+  'progress.cpu_mode': 'CPU ローカル推論モード（低速）',
   'page.about.hero_title_lead': '一人の',
 }
