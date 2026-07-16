@@ -2234,6 +2234,10 @@ function App() {
               <span className="text-slate-700">·</span>
               <Link to="/terms" className="footer-link text-slate-400 transition-all duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">{t('page.terms.title')}</Link>
             </div>
+            {/* Adsterra Smartlink */}
+            <a href="https://www.effectivecpmnetwork.com/puk4pwyuy?key=9ff45a898da808adefc3138284d17f57" className="text-slate-600 transition-colors duration-200 hover:text-slate-400" target="_blank" rel="noopener noreferrer">
+              免费推荐资源
+            </a>
             <p className="mt-4">&copy; {new Date().getFullYear()} SmartCut. {t('footer.copyright')}</p>
           </div>
         </div>
